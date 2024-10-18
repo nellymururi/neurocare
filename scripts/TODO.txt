@@ -1,0 +1,7 @@
+Automate Real-Time Fetching
+You can run the script periodically to fetch real-time data and feed it into your model using scheduling techniques like:
+
+Crontab (Linux/Mac):
+Add the script to a cron job to run every minute/hour.
+Google Cloud Scheduler:
+Schedule regular HTTP triggers to fetch the real-time data and push it to your model's API.
