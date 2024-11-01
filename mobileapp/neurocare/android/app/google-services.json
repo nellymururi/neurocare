@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "500612082391",
+    "project_id": "neurocareproject-f5c6f",
+    "storage_bucket": "neurocareproject-f5c6f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:500612082391:android:e4d76a07b2eb599d181e92",
+        "android_client_info": {
+          "package_name": "com.example.neurocare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBORnpYL8GwLHsPwenv5uymJRV7PGbxCcY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
