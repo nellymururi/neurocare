@@ -15,7 +15,7 @@ class _HomeState extends State<Home> {
         title: const Text("Home "),
         centerTitle: true,
       ),
-      body: Center(
+      body: const Center(
         child: Text(
           "My Home Page",
           style: TextStyle(

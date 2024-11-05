@@ -64,6 +64,7 @@ class _SignUpScreenState extends State<SignUpPage> {
         password: _passwordController.text.trim(),
       );
       _showMessage("Registration successful! Please log in.", Colors.green);
+      // ignore: use_build_context_synchronously
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       if (e.toString().contains('email-already-in-use')) {

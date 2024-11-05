@@ -44,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
       );
       _showMessage("Login successful!", Colors.green);
       // Navigate to your home page or desired route
+      // ignore: use_build_context_synchronously
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (e is FirebaseAuthException) {

@@ -1,7 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'splash_screen.dart'; // Import your splash screen file
-import 'signup_page.dart'; // Import your signup page file
+import 'splash_screen.dart';
+import 'login_page.dart';
+import 'signup_page.dart';
+import 'home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,7 +12,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,9 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
+        '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
+        '/home': (context) => const Home(),
       },
     );
   }
