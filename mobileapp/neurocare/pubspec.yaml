@@ -33,6 +33,7 @@ dependencies:
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   google_sign_in: ^6.2.2
+  local_auth: ^2.3.0
   #google_fonts: ^3.0.1 
 
   # The following adds the Cupertino Icons font to your application.
@@ -62,6 +63,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/google_icon.png
+    - assets/fingerprint_icon.png
 
 flutter_native_splash:
   color: "#81D4FA"  # Background color in hex (lighter blue)

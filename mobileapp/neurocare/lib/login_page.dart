@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'forgot_password_screen.dart';
 import 'auth_service.dart';
+import 'fingerprint_auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,6 +14,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _auth = FirebaseAuth.instance;
   final _authService = AuthService();
+  final FingerprintAuthService _fingerprintAuthService =
+      FingerprintAuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
@@ -88,6 +91,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+//for google sign in
   Future<void> _handleGoogleSignIn() async {
     final user = await _authService.signInWithGoogle();
     if (user != null) {
@@ -96,6 +100,24 @@ class _LoginPageState extends State<LoginPage> {
     } else {
       _showMessage(
           "Google sign-in failed. Please try again.", Colors.red.shade400);
+    }
+  }
+
+  // For fingerprint login
+  Future<void> _loginWithFingerprint() async {
+    bool canAuthenticate = await _fingerprintAuthService.isBiometricAvailable();
+    if (canAuthenticate) {
+      bool authenticated = await _fingerprintAuthService.authenticate();
+      if (authenticated) {
+        _showMessage("Fingerprint authentication successful!", Colors.green);
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        _showMessage(
+            "Authentication failed. Please try again.", Colors.red.shade400);
+      }
+    } else {
+      _showMessage(
+          "Biometric authentication is not available.", Colors.red.shade400);
     }
   }
 
@@ -144,6 +166,22 @@ class _LoginPageState extends State<LoginPage> {
                 foregroundColor: Colors.black,
               ),
             ),
+            const SizedBox(height: 20),
+            // New fingerprint login button
+            ElevatedButton.icon(
+              onPressed: _loginWithFingerprint,
+              icon: Image.asset(
+                'assets/fingerprint_icon.png',
+                height:
+                    24, // Ensure your image height is small for a compact icon
+              ),
+              label: const Text("Login with Fingerprint"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade50,
+                foregroundColor: Colors.black,
+              ),
+            ),
+
             const SizedBox(height: 20),
             Center(
               child: Row(
