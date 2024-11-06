@@ -12,7 +12,20 @@
           "package_name": "com.example.neurocare"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "500612082391-ouanvsop2criqgol24d81a2mdv96jojd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.neurocare",
+            "certificate_hash": "809aba5efb4d41ca69c0fe5d150ecdd67b0385f5"
+          }
+        },
+        {
+          "client_id": "500612082391-m1mgabfrapshnnpgc972fdcrdu0ripaf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBORnpYL8GwLHsPwenv5uymJRV7PGbxCcY"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "500612082391-m1mgabfrapshnnpgc972fdcrdu0ripaf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

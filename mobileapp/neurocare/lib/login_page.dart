@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'forgot_password_screen.dart';
+import 'auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,6 +12,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _auth = FirebaseAuth.instance;
+  final _authService = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
@@ -86,6 +88,17 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    final user = await _authService.signInWithGoogle();
+    if (user != null) {
+      // Navigate to home page or desired page after successful sign-in
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      _showMessage(
+          "Google sign-in failed. Please try again.", Colors.red.shade400);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,6 +134,17 @@ class _LoginPageState extends State<LoginPage> {
               child: const Text("Login"),
             ),
             const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _handleGoogleSignIn,
+              icon: Image.asset('assets/google_icon.png',
+                  height: 24), // Ensure you have the Google icon
+              label: const Text("Sign in with Google"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 20),
             Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -141,17 +165,17 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 10), // Add some spacing
+            const SizedBox(height: 10),
             Center(
               child: GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => ForgotPasswordScreen()),
+                        builder: (context) => const ForgotPasswordScreen()),
                   );
                 },
-                child: Text(
+                child: const Text(
                   "Forgot Password?",
                   style: TextStyle(
                     color: Colors.blue,
