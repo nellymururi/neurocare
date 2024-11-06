@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'auth_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -13,7 +14,7 @@ class _SignUpScreenState extends State<SignUpPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-
+  final AuthService _authService = AuthService();
   void _togglePasswordVisibility() {
     setState(() {
       _isPasswordVisible = !_isPasswordVisible;
@@ -76,6 +77,22 @@ class _SignUpScreenState extends State<SignUpPage> {
     }
   }
 
+  Future<void> _signUpWithGoogle() async {
+    try {
+      User? user = await _authService.signInWithGoogle();
+      if (user != null) {
+        _showMessage("Google sign-up successful!", Colors.green);
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        _showMessage(
+            "Google sign-up failed. Please try again.", Colors.red.shade400);
+      }
+    } catch (e) {
+      _showMessage(
+          "Google sign-up error: ${e.toString()}", Colors.red.shade400);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,6 +126,35 @@ class _SignUpScreenState extends State<SignUpPage> {
             ElevatedButton(
               onPressed: _registerUser,
               child: const Text("Register"),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _signUpWithGoogle,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize
+                    .min, // Ensures the button size fits the content
+                children: [
+                  Image.asset(
+                    'assets/google_icon.png', // Make sure this file exists in assets
+                    height: 24,
+                    width: 24, // You can adjust the width if needed
+                  ),
+                  const SizedBox(
+                      width: 10), // Add space between the icon and text
+                  const Text(
+                    "Sign up with Google",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             Center(

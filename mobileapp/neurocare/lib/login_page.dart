@@ -91,7 +91,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _handleGoogleSignIn() async {
     final user = await _authService.signInWithGoogle();
     if (user != null) {
-      // Navigate to home page or desired page after successful sign-in
+      _showMessage("Google sign-up successful!", Colors.green);
       Navigator.pushReplacementNamed(context, '/home');
     } else {
       _showMessage(
