@@ -26,12 +26,58 @@ class _HomeState extends State<Home> {
     }
   }
 
+  // Placeholder for fetching real-time steps (Google Fit integration)
+  // Future<String> getRealTimeSteps() async {
+  //   // Placeholder for the data fetched from Google Fit
+  //   return "1200"; // Example real-time step count
+  // }
+// buildCard function definition
+  Widget buildCard({
+    required String title,
+    required String content,
+    Widget? additionalContent,
+  }) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              content,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+              ),
+            ),
+            if (additionalContent != null) ...[
+              const SizedBox(height: 12),
+              additionalContent,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Home",
+          "NeuroCare",
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
@@ -42,11 +88,11 @@ class _HomeState extends State<Home> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
+            const DrawerHeader(
+              decoration: BoxDecoration(
                 color: Color.fromARGB(255, 107, 70, 176), // Lavender background
               ),
-              child: const Text(
+              child: Text(
                 'Menu',
                 style: TextStyle(
                   color: Colors.white,
@@ -63,6 +109,15 @@ class _HomeState extends State<Home> {
                 Navigator.pop(context);
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.note,
+                  color: Color.fromARGB(255, 107, 70, 176)),
+              title: const Text('Notes'),
+              onTap: () {
+                Navigator.pushNamed(context, '/notes');
+              },
+            ),
+
             ListTile(
               leading: const Icon(Icons.settings,
                   color: Color.fromARGB(255, 107, 70, 176)),
@@ -91,21 +146,64 @@ class _HomeState extends State<Home> {
           ],
         ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Text(
-              "My Home Page",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 107, 70, 176), // Lavender text
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              buildCard(
+                title: "Real-Time Activity Level",
+                content: "Steps: 1200 (Placeholder for real-time data)",
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              buildCard(
+                title: "Activity Level Indicator",
+                content: "Current Activity Level: Medium",
+                additionalContent: SizedBox(
+                  height: 20,
+                  child: LinearProgressIndicator(
+                    value: 0.7,
+                    backgroundColor: Colors.grey.shade300,
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              buildCard(
+                title: "Predicted Activity Levels",
+                content: "Prediction feature coming soon...",
+              ),
+              const SizedBox(height: 16),
+              buildCard(
+                title: "History and Insights",
+                content: "Historical data and insights will appear here.",
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+
+              //Commented out for future API integration
+              // FutureBuilder<String>(
+              //   future: getRealTimeSteps(),
+              //   builder: (context, snapshot) {
+              //     if (snapshot.connectionState == ConnectionState.waiting) {
+              //       return const Center(
+              //         child: CircularProgressIndicator(),
+              //       );
+              //     } else if (snapshot.hasError) {
+              //       return const Text("Error fetching real-time data");
+              //     } else {
+              //       return Text(
+              //         "Steps: ${snapshot.data}",
+              //         style: const TextStyle(fontSize: 16, color: Colors.black),
+              //       );
+              //     }
+              //   },
+              // ),

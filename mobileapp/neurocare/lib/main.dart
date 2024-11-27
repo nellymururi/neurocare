@@ -5,6 +5,7 @@ import 'login_page.dart';
 import 'signup_page.dart';
 import 'home.dart';
 import 'forgot_password_screen.dart';
+import 'notes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignUpPage(),
         '/home': (context) => const Home(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/notes': (context) => const NotesPage(),
       },
     );
   }
