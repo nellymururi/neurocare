@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'homepage/home_page.dart'; // Import HomePage
+import 'homepage/alert_page.dart'; // Import AlertPage
+import 'homepage/profile_page.dart'; // Import ProfilePage
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -15,9 +18,8 @@ class _HomeState extends State<Home> {
   Future<void> _logout() async {
     try {
       await _auth.signOut();
-      // Navigate back to the authentication screen
-      Navigator.of(context).pushReplacementNamed(
-          '/login'); // Ensure '/auth' is the route to your authentication screen
+      // Navigate back to the login screen
+      Navigator.of(context).pushReplacementNamed('/login');
     } catch (e) {
       // Handle any errors during logout
       ScaffoldMessenger.of(context).showSnackBar(
@@ -26,51 +28,12 @@ class _HomeState extends State<Home> {
     }
   }
 
-  // Placeholder for fetching real-time steps (Google Fit integration)
-  // Future<String> getRealTimeSteps() async {
-  //   // Placeholder for the data fetched from Google Fit
-  //   return "1200"; // Example real-time step count
-  // }
-// buildCard function definition
-  Widget buildCard({
-    required String title,
-    required String content,
-    Widget? additionalContent,
-  }) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              content,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
-            ),
-            if (additionalContent != null) ...[
-              const SizedBox(height: 12),
-              additionalContent,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  int _currentIndex = 0; // Bottom navigation index
+  final List<Widget> _pages = [
+    const HomePage(),
+    const AlertPage(),
+    const ProfilePage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +80,6 @@ class _HomeState extends State<Home> {
                 Navigator.pushNamed(context, '/notes');
               },
             ),
-
             ListTile(
               leading: const Icon(Icons.settings,
                   color: Color.fromARGB(255, 107, 70, 176)),
@@ -146,64 +108,31 @@ class _HomeState extends State<Home> {
           ],
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              buildCard(
-                title: "Real-Time Activity Level",
-                content: "Steps: 1200 (Placeholder for real-time data)",
-              ),
-              const SizedBox(height: 16),
-              buildCard(
-                title: "Activity Level Indicator",
-                content: "Current Activity Level: Medium",
-                additionalContent: SizedBox(
-                  height: 20,
-                  child: LinearProgressIndicator(
-                    value: 0.7,
-                    backgroundColor: Colors.grey.shade300,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              buildCard(
-                title: "Predicted Activity Levels",
-                content: "Prediction feature coming soon...",
-              ),
-              const SizedBox(height: 16),
-              buildCard(
-                title: "History and Insights",
-                content: "Historical data and insights will appear here.",
-              ),
-            ],
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        selectedItemColor: const Color.fromARGB(255, 107, 70, 176),
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
           ),
-        ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Alerts',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
       ),
     );
   }
 }
-
-
-              //Commented out for future API integration
-              // FutureBuilder<String>(
-              //   future: getRealTimeSteps(),
-              //   builder: (context, snapshot) {
-              //     if (snapshot.connectionState == ConnectionState.waiting) {
-              //       return const Center(
-              //         child: CircularProgressIndicator(),
-              //       );
-              //     } else if (snapshot.hasError) {
-              //       return const Text("Error fetching real-time data");
-              //     } else {
-              //       return Text(
-              //         "Steps: ${snapshot.data}",
-              //         style: const TextStyle(fontSize: 16, color: Colors.black),
-              //       );
-              //     }
-              //   },
-              // ),
