@@ -1,2 +1,3 @@
 ./scripts/myenv
 ./scripts/client_secret.json
+./scripts/firebase_adminsdk.json

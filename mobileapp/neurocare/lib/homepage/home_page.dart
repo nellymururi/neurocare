@@ -1,8 +1,147 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'steps_record.dart'; // Import the StepsRecord page
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'predictions_record.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  Map<String, dynamic>? currentMinuteSteps;
+  Map<String, dynamic>? adhdPrediction;
+  bool isLoadingSteps = true;
+  bool isLoadingPrediction = true;
+
+  // Base URL of your Flask app
+  final String baseUrl = 'http://192.168.100.90:5000';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCurrentMinuteSteps();
+    fetchADHDPredictions();
+  }
+
+  Future<void> fetchCurrentMinuteSteps() async {
+    setState(() {
+      isLoadingSteps = true;
+    });
+
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/real_time_steps'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success']) {
+          // Extract only the most recent step data
+          final stepsList = data['steps'] as List<dynamic>;
+          if (stepsList.isNotEmpty) {
+            final mostRecentStep = stepsList.last;
+            setState(() {
+              currentMinuteSteps = {
+                "steps": mostRecentStep['steps'] ?? 0,
+                "time": mostRecentStep['time'] ?? "N/A",
+              };
+            });
+          } else {
+            setState(() {
+              currentMinuteSteps = null;
+            });
+          }
+        } else {
+          setState(() {
+            currentMinuteSteps = null;
+          });
+        }
+      } else {
+        throw Exception('Failed to fetch current minute steps');
+      }
+    } catch (e) {
+      print('Error fetching current minute steps: $e');
+    } finally {
+      setState(() {
+        isLoadingSteps = false;
+      });
+    }
+  }
+
+  Future<void> fetchADHDPredictions() async {
+    setState(() {
+      isLoadingPrediction = true;
+    });
+
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/adhd_predictions'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success']) {
+          setState(() {
+            adhdPrediction = data['prediction'];
+          });
+
+          // Store the prediction in Firestore
+          await FirebaseFirestore.instance.collection('adhd_predictions').add({
+            "classification": adhdPrediction!['adhd_classification'],
+            "prediction_score": adhdPrediction!['adhd_prediction_score'],
+            "timestamp": FieldValue.serverTimestamp(),
+          });
+        } else {
+          setState(() {
+            adhdPrediction = null;
+          });
+        }
+      } else {
+        throw Exception('Failed to fetch ADHD predictions');
+      }
+    } catch (e) {
+      print('Error fetching ADHD predictions: $e');
+    } finally {
+      setState(() {
+        isLoadingPrediction = false;
+      });
+    }
+  }
+
+  String getStepLevel(int steps) {
+    if (steps >= 50) {
+      return "Very High";
+    } else if (steps >= 30) {
+      return "Medium";
+    } else if (steps >= 10) {
+      return "Normal";
+    } else {
+      return "Very Low";
+    }
+  }
+
+  double getProgressValue(int steps) {
+    if (steps >= 50) {
+      return 1.0; // Fully filled
+    } else if (steps >= 30) {
+      return 0.75; // 75% progress
+    } else if (steps >= 10) {
+      return 0.5; // 50% progress
+    } else {
+      return 0.25; // 25% progress
+    }
+  }
+
+  Color getProgressColor(int steps) {
+    if (steps >= 50) {
+      return Colors.red; // Very High
+    } else if (steps >= 30) {
+      return Colors.orange; // Medium
+    } else if (steps >= 10) {
+      return Colors.green; // Normal
+    } else {
+      return Colors.grey; // Very Low
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,75 +152,188 @@ class HomePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Section 1: Displaying Real-Time Activity Data
+              // Real-Time Steps Section
               const Text(
                 "Real-Time Activity Level",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              // StreamBuilder to fetch real-time data
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('steps_data')
-                    .orderBy('timestamp', descending: true)
-                    .limit(1) // Only get the most recent step data
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return const Text("Error fetching data.");
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Text("No data available.");
-                  }
+              isLoadingSteps
+                  ? const Center(child: CircularProgressIndicator())
+                  : currentMinuteSteps != null
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                // Navigate to StepsRecord page when tapped
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        StepsRecord(baseUrl: baseUrl),
+                                  ),
+                                );
+                              },
+                              child: buildCard(
+                                title: "Current Activity Level",
+                                content: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Show the steps for the most recent minute
+                                    Text(
+                                      "Steps Count: ${currentMinuteSteps!['steps']}",
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.normal,
+                                      ),
+                                    ),
+                                    // Show the time for the most recent minute
+                                    Text(
+                                      "Time: ${currentMinuteSteps!['time']}",
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontStyle: FontStyle.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
 
-                  // Get the most recent data point (latest steps value)
-                  var doc = snapshot.data!.docs.first;
-                  int steps = doc['steps'] ?? 0;
+                            // Indicator Bar for Step Level
+                            buildCard(
+                              title: "Activity Level Indicator",
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Level: ${getStepLevel(currentMinuteSteps!['steps'])}",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    height:
+                                        20, // Adjusted height for a bigger indicator bar
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(
+                                          10), // Rounded corners
+                                      color:
+                                          Colors.grey[300], // Background color
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: LinearProgressIndicator(
+                                        value: getProgressValue(
+                                            currentMinuteSteps!['steps']),
+                                        backgroundColor: Colors
+                                            .transparent, // Transparent for rounded corners
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          getProgressColor(
+                                              currentMinuteSteps!['steps']),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Text("No steps data available."),
 
-                  // Determine the activity level based on the steps
-                  String activityLevel = _getActivityLevel(steps);
-                  Color progressBarColor = _getProgressBarColor(activityLevel);
+              const SizedBox(height: 16),
 
-                  // Display the real-time steps and activity level inside the card
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      buildCard(
-                        title: "Current Activity Level",
-                        content: Text("Steps: $steps"),
-                      ),
-                      const SizedBox(height: 16),
-                      buildCard(
-                        title: "Activity Level Indicator",
-                        content: Text("Current Activity Level: $activityLevel"),
-                        additionalContent: SizedBox(
-                          height: 20,
-                          child: LinearProgressIndicator(
-                            value: _getProgressValue(activityLevel),
-                            backgroundColor: Colors.grey.shade300,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(progressBarColor),
+              // ADHD Predictions Section
+              const Text(
+                "Predicted Activity Level",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              isLoadingPrediction
+                  ? const Center(child: CircularProgressIndicator())
+                  : adhdPrediction != null
+                      ? GestureDetector(
+                          onTap: () {
+                            // Navigate to Predictions Record page when tapped
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PredictionsRecord(),
+                              ),
+                            );
+                          },
+                          child: buildCard(
+                            title: "ADHD Prediction",
+                            content: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Classification Section
+                                Row(
+                                  children: [
+                                    // Classification Indicator
+                                    Container(
+                                      width: 20, // Square width
+                                      height: 20, // Square height
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(5),
+                                        color: adhdPrediction![
+                                                    'adhd_classification'] ==
+                                                "ADHD Detected"
+                                            ? Colors.red
+                                            : Colors.green,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      adhdPrediction!['adhd_classification'],
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                // Prediction Score Section
+                                const Text(
+                                  "Prediction Score",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "${((adhdPrediction!['adhd_prediction_score'] ?? 0) * 100).toStringAsFixed(1)}%",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+                        )
+                      : const Text("No ADHD predictions available."),
               const SizedBox(height: 16),
-              // Other content like History or Insights
-              buildCard(
-                title: "Predicted Activity Levels",
-                content: const Text("Prediction feature coming soon..."),
+
+              // History and Insights Section
+              const Text(
+                "History and Insights",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
+
               buildCard(
                 title: "History and Insights",
                 content: const Text(
-                    "Historical data and insights will appear here."),
+                  "Historical data and insights will appear here.",
+                ),
               ),
             ],
           ),
@@ -90,55 +342,9 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  // Method to get the activity level based on the number of steps
-  String _getActivityLevel(int steps) {
-    if (steps >= 30) {
-      return "High";
-    } else if (steps >= 20) {
-      return "Medium";
-    } else if (steps >= 10) {
-      return "Low";
-    } else {
-      return "Very Low";
-    }
-  }
-
-  // Method to get the progress value based on the activity level
-  double _getProgressValue(String activityLevel) {
-    switch (activityLevel) {
-      case "High":
-        return 1.0; // Fully filled
-      case "Medium":
-        return 0.7; // 70% progress
-      case "Low":
-        return 0.4; // 40% progress
-      case "Very Low":
-        return 0.1; // 10% progress
-      default:
-        return 0.0; // No progress
-    }
-  }
-
-  // Method to get the progress bar color based on the activity level
-  Color _getProgressBarColor(String activityLevel) {
-    switch (activityLevel) {
-      case "High":
-        return Colors.red; // Red for high activity
-      case "Medium":
-        return Colors.yellow; // Yellow for medium activity
-      case "Low":
-        return Colors.blue; // Blue for low activity
-      case "Very Low":
-        return Colors.grey; // Grey for very low activity
-      default:
-        return Colors.grey; // Default color if unknown level
-    }
-  }
-
   Widget buildCard({
     required String title,
     required Widget content,
-    Widget? additionalContent,
   }) {
     return Card(
       shape: RoundedRectangleBorder(
@@ -159,10 +365,6 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             content,
-            if (additionalContent != null) ...[
-              const SizedBox(height: 12),
-              additionalContent,
-            ],
           ],
         ),
       ),

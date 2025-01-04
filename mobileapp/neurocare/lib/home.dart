@@ -40,7 +40,7 @@ class _HomeState extends State<Home> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "NeuroCare",
+          "NeuroCare Dashboard",
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
