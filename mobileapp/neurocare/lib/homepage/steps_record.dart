@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StepsRecord extends StatefulWidget {
   final String baseUrl;
@@ -35,6 +36,32 @@ class _StepsRecordState extends State<StepsRecord> {
           setState(() {
             recordedSteps = (data['steps'] as List<dynamic>).reversed.toList();
           });
+
+          // Store data in Firestore
+          for (var step in recordedSteps!) {
+            final hour = step['time']?.split(":")[0] ?? "N/A";
+            final stepCount = step['steps'] ?? 0;
+
+            // Add or update step data in Firestore
+            final hourDoc = await FirebaseFirestore.instance
+                .collection('steps_data')
+                .doc(hour)
+                .get();
+
+            if (hourDoc.exists) {
+              await hourDoc.reference.update({
+                "steps": FieldValue.increment(stepCount),
+              });
+            } else {
+              await FirebaseFirestore.instance
+                  .collection('steps_data')
+                  .doc(hour)
+                  .set({
+                "hour": hour,
+                "steps": stepCount,
+              });
+            }
+          }
         } else {
           setState(() {
             recordedSteps = null;

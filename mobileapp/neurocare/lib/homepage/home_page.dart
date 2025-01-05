@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'steps_record.dart'; // Import the StepsRecord page
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'predictions_record.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'predictions_graph.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -38,28 +40,44 @@ class _HomePageState extends State<HomePage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
-          // Extract only the most recent step data
           final stepsList = data['steps'] as List<dynamic>;
           if (stepsList.isNotEmpty) {
             final mostRecentStep = stepsList.last;
+
             setState(() {
               currentMinuteSteps = {
                 "steps": mostRecentStep['steps'] ?? 0,
                 "time": mostRecentStep['time'] ?? "N/A",
               };
             });
-          } else {
-            setState(() {
-              currentMinuteSteps = null;
-            });
+
+            // Store hourly data in Firestore
+            final hour = mostRecentStep['time']?.split(":")[0] ?? "N/A";
+            final stepCount = mostRecentStep['steps'] ?? 0;
+
+            // Update or add hourly data
+            final hourDoc = await FirebaseFirestore.instance
+                .collection('steps_data')
+                .doc(hour)
+                .get();
+
+            if (hourDoc.exists) {
+              await hourDoc.reference.update({
+                "steps": FieldValue.increment(stepCount),
+              });
+            } else {
+              await FirebaseFirestore.instance
+                  .collection('steps_data')
+                  .doc(hour)
+                  .set({
+                "hour": hour,
+                "steps": stepCount,
+              });
+            }
           }
-        } else {
-          setState(() {
-            currentMinuteSteps = null;
-          });
         }
       } else {
-        throw Exception('Failed to fetch current minute steps');
+        throw Exception('Failed to fetch real-time steps.');
       }
     } catch (e) {
       print('Error fetching current minute steps: $e');
@@ -68,6 +86,27 @@ class _HomePageState extends State<HomePage> {
         isLoadingSteps = false;
       });
     }
+  }
+
+  Future<int> fetchTotalStepsForCurrentHour() async {
+    final now = DateTime.now();
+    final currentHour =
+        now.hour.toString().padLeft(2, '0'); // Format hour as HH
+
+    try {
+      final hourDoc = await FirebaseFirestore.instance
+          .collection('steps_data')
+          .doc(currentHour)
+          .get();
+
+      if (hourDoc.exists) {
+        return hourDoc.data()?['steps'] ?? 0; // Return step count
+      }
+    } catch (e) {
+      print("Error fetching steps for current hour: $e");
+    }
+
+    return 0; // Default to 0 if no data exists
   }
 
   Future<void> fetchADHDPredictions() async {
@@ -107,36 +146,36 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String getStepLevel(int steps) {
-    if (steps >= 50) {
+  String getStepLevel(int hourlySteps) {
+    if (hourlySteps >= 300) {
       return "Very High";
-    } else if (steps >= 30) {
+    } else if (hourlySteps >= 200) {
       return "Medium";
-    } else if (steps >= 10) {
+    } else if (hourlySteps >= 100) {
       return "Normal";
     } else {
       return "Very Low";
     }
   }
 
-  double getProgressValue(int steps) {
-    if (steps >= 50) {
+  double getProgressValue(int hourlySteps) {
+    if (hourlySteps >= 300) {
       return 1.0; // Fully filled
-    } else if (steps >= 30) {
+    } else if (hourlySteps >= 200) {
       return 0.75; // 75% progress
-    } else if (steps >= 10) {
+    } else if (hourlySteps >= 100) {
       return 0.5; // 50% progress
     } else {
       return 0.25; // 25% progress
     }
   }
 
-  Color getProgressColor(int steps) {
-    if (steps >= 50) {
+  Color getProgressColor(int hourlySteps) {
+    if (hourlySteps >= 300) {
       return Colors.red; // Very High
-    } else if (steps >= 30) {
+    } else if (hourlySteps >= 200) {
       return Colors.orange; // Medium
-    } else if (steps >= 10) {
+    } else if (hourlySteps >= 100) {
       return Colors.green; // Normal
     } else {
       return Colors.grey; // Very Low
@@ -205,42 +244,60 @@ class _HomePageState extends State<HomePage> {
                             // Indicator Bar for Step Level
                             buildCard(
                               title: "Activity Level Indicator",
-                              content: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Level: ${getStepLevel(currentMinuteSteps!['steps'])}",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    height:
-                                        20, // Adjusted height for a bigger indicator bar
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(
-                                          10), // Rounded corners
-                                      color:
-                                          Colors.grey[300], // Background color
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: LinearProgressIndicator(
-                                        value: getProgressValue(
-                                            currentMinuteSteps!['steps']),
-                                        backgroundColor: Colors
-                                            .transparent, // Transparent for rounded corners
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          getProgressColor(
-                                              currentMinuteSteps!['steps']),
+                              content: FutureBuilder<int>(
+                                future:
+                                    fetchTotalStepsForCurrentHour(), // Fetch hourly step count
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+                                  if (snapshot.hasError || !snapshot.hasData) {
+                                    return const Text(
+                                        "Error fetching step data.");
+                                  }
+
+                                  final hourlySteps = snapshot.data ??
+                                      0; // Total steps for current hour
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Hourly Steps: $hourlySteps",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.normal,
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                ],
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        height:
+                                            20, // Adjusted height for a bigger indicator bar
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          color: Colors
+                                              .grey[300], // Background color
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          child: LinearProgressIndicator(
+                                            value:
+                                                getProgressValue(hourlySteps),
+                                            backgroundColor: Colors.transparent,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                              getProgressColor(hourlySteps),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
                           ],
@@ -328,11 +385,22 @@ class _HomePageState extends State<HomePage> {
                 "History and Insights",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-
-              buildCard(
-                title: "History and Insights",
-                content: const Text(
-                  "Historical data and insights will appear here.",
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () {
+                  // Navigate to Predictions Graph Page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PredictionsGraph()),
+                  );
+                },
+                child: buildCard(
+                  title: "Predictions Graph",
+                  content: Container(
+                    height: 300, // Adjusted graph height
+                    child:
+                        PredictionsGraph(), // Fetch and display predictions data
+                  ),
                 ),
               ),
             ],
@@ -367,6 +435,131 @@ class _HomePageState extends State<HomePage> {
             content,
           ],
         ),
+      ),
+    );
+  }
+}
+
+class PredictionsGraph extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Predictions Graph"),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('adhd_predictions')
+            .orderBy('timestamp', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text("Error fetching data."));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No data available."));
+          }
+
+          final predictionsData = snapshot.data!.docs;
+          List<BarChartGroupData> barGroups = [];
+          List<String> labels = [];
+
+          for (int i = 0; i < predictionsData.length; i++) {
+            final prediction = predictionsData[i];
+            final score = (prediction['prediction_score'] * 100).toDouble();
+            final timestamp = prediction['timestamp'].toDate();
+
+            labels.add(
+                "${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}"); // Add exact time
+            barGroups.add(
+              BarChartGroupData(
+                x: i,
+                barRods: [
+                  BarChartRodData(
+                    toY: score,
+                    width: 15,
+                    color: Colors.green,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Container(
+              width: barGroups.length * 40, // Dynamic width based on data
+              child: BarChart(
+                BarChartData(
+                  barGroups: barGroups,
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      axisNameWidget: const Text(
+                        "Prediction Score (%)",
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 20,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) {
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        },
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      axisNameWidget: const Text(
+                        "Time (HH:mm)",
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index >= 0 && index < labels.length) {
+                            return Text(
+                              labels[index],
+                              style: const TextStyle(fontSize: 10),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ),
+                  ),
+                  maxY:
+                      100, // Adjust based on the expected range of prediction scores
+                  gridData: FlGridData(show: true),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: const Border(
+                      left: BorderSide(color: Colors.black, width: 1),
+                      bottom: BorderSide(color: Colors.black, width: 1),
+                    ),
+                  ),
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        return BarTooltipItem(
+                          "${rod.toY.toStringAsFixed(1)}%",
+                          const TextStyle(color: Colors.white),
+                        );
+                      },
+                    ),
+                  ),
+                  alignment: BarChartAlignment.spaceEvenly,
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
