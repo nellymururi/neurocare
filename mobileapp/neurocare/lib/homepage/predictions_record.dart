@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class PredictionsRecord extends StatelessWidget {
+  const PredictionsRecord({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,8 +33,8 @@ class PredictionsRecord extends StatelessWidget {
             itemBuilder: (context, index) {
               final prediction = predictionsData[index];
               final classification = prediction['classification'] ?? "Unknown";
-              final score = ((prediction['prediction_score'] ?? 0) * 100)
-                  .toStringAsFixed(1);
+              final score =
+                  (prediction['prediction_score'] ?? 0).toStringAsFixed(1);
 
               return ListTile(
                 leading: classification == "ADHD Detected"

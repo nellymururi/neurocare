@@ -57,7 +57,7 @@ def fetch_steps_continuously():
                     send_alert(severity, prediction["adhd_prediction_raw"][0])
         except Exception as e:
             print(f"Error fetching steps or making predictions: {e}")
-        time.sleep(60)  # Fetch and predict every minute
+        time.sleep(30)  # Fetch and predict every minute
 
 @app.route('/')
 def home():

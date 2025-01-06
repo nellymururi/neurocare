@@ -26,36 +26,51 @@ class PredictionsGraph extends StatelessWidget {
           }
 
           final predictionsData = snapshot.data!.docs;
+
+          // Create bar groups and labels
           List<BarChartGroupData> barGroups = [];
           List<String> labels = [];
+          double maxY = 0; // Track the maximum value for scaling the Y-axis.
 
           for (int i = 0; i < predictionsData.length; i++) {
             final prediction = predictionsData[i];
-            final score = (prediction['prediction_score'] * 100).toDouble();
-            final time = prediction['timestamp'].toDate();
-            labels.add(
-                "${time.hour}:${time.minute.toString().padLeft(2, '0')}"); // Add exact time as label
-            barGroups.add(
-              BarChartGroupData(
-                x: i,
-                barRods: [
-                  BarChartRodData(
-                    toY: score,
-                    width: 10,
-                    color: Colors.green,
-                  ),
-                ],
-              ),
-            );
+            final rawScore = prediction['prediction_score'] ?? 0;
+            final score = double.tryParse(rawScore.toString()) ??
+                0.0; // Convert to double
+            final timestamp = prediction['timestamp']?.toDate();
+
+            if (timestamp != null) {
+              labels.add(
+                  "${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}");
+              barGroups.add(
+                BarChartGroupData(
+                  x: i,
+                  barRods: [
+                    BarChartRodData(
+                      toY: score, // Use the correctly parsed score
+                      width: 10,
+                      color: Colors.green,
+                    ),
+                  ],
+                ),
+              );
+
+              // Update maxY to set a proper Y-axis limit
+              if (score > maxY) {
+                maxY = score;
+              }
+            }
           }
 
+          // Display the bar chart
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Container(
-              height: 200,
+              height: 300, // Adjust graph height
               child: BarChart(
                 BarChartData(
                   barGroups: barGroups,
+                  maxY: maxY + 10, // Add some buffer above the highest score
                   titlesData: FlTitlesData(
                     leftTitles: AxisTitles(
                       axisNameWidget: const Text(
@@ -65,15 +80,11 @@ class PredictionsGraph extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 40,
-                        interval: 20,
+                        interval: (maxY > 0) ? maxY / 5 : 20,
                         getTitlesWidget: (value, meta) {
-                          return Padding(
-                            padding:
-                                const EdgeInsets.only(right: 5), // Bring closer
-                            child: Text(
-                              value.toInt().toString(),
-                              style: const TextStyle(fontSize: 10),
-                            ),
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 10),
                           );
                         },
                       ),

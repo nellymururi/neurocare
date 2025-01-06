@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'homepage/home_page.dart'; // Import HomePage
 import 'homepage/alert_page.dart'; // Import AlertPage
 import 'homepage/profile_page.dart'; // Import ProfilePage
@@ -13,6 +14,49 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  int _currentIndex = 0; // Bottom navigation index
+  int _unreadAlertsCount = 0; // Track unread alerts
+
+  final List<Widget> _pages = [
+    const HomePage(),
+    const AlertPage(),
+    const ProfilePage(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUnreadAlertsCount(); // Fetch unread alerts count
+  }
+
+  // Fetch unread alerts count
+  void _fetchUnreadAlertsCount() {
+    FirebaseFirestore.instance
+        .collection('alerts')
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .listen((snapshot) {
+      setState(() {
+        _unreadAlertsCount = snapshot.docs.length;
+      });
+    });
+  }
+
+  // Mark all alerts as read
+  Future<void> _markAllAlertsAsRead() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('alerts')
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    for (var doc in snapshot.docs) {
+      await doc.reference.update({"isRead": true});
+    }
+
+    setState(() {
+      _unreadAlertsCount = 0; // Reset the count locally
+    });
+  }
 
   // Function to handle logout
   Future<void> _logout() async {
@@ -27,13 +71,6 @@ class _HomeState extends State<Home> {
       );
     }
   }
-
-  int _currentIndex = 0; // Bottom navigation index
-  final List<Widget> _pages = [
-    const HomePage(),
-    const AlertPage(),
-    const ProfilePage(),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -108,29 +145,65 @@ class _HomeState extends State<Home> {
           ],
         ),
       ),
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: const Color.fromARGB(255, 107, 70, 176),
         unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+            icon: Stack(
+              children: [
+                const Icon(Icons.notifications),
+                if (_unreadAlertsCount > 0)
+                  Positioned(
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '$_unreadAlertsCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             label: 'Alerts',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
-        onTap: (index) {
+        onTap: (index) async {
           setState(() {
             _currentIndex = index;
           });
+
+          // If Alerts page is selected, mark all alerts as read
+          if (index == 1) {
+            await _markAllAlertsAsRead();
+          }
         },
       ),
     );

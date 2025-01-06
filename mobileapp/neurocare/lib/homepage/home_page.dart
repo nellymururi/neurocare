@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'predictions_record.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'predictions_graph.dart';
+import 'alert_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,6 +20,7 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? adhdPrediction;
   bool isLoadingSteps = true;
   bool isLoadingPrediction = true;
+  int _alertThreshold = 50; // Default threshold
 
   // Base URL of your Flask app
   final String baseUrl = 'http://192.168.100.90:5000';
@@ -26,6 +28,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    fetchAlertThreshold(); // Fetch threshold first
     fetchCurrentMinuteSteps();
     fetchADHDPredictions();
   }
@@ -109,6 +112,23 @@ class _HomePageState extends State<HomePage> {
     return 0; // Default to 0 if no data exists
   }
 
+  Future<void> fetchAlertThreshold() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('settings')
+          .doc('alertThreshold')
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          _alertThreshold = doc.data()?['threshold'] ?? 50;
+        });
+      }
+    } catch (e) {
+      print("Error fetching alert threshold: $e");
+    }
+  }
+
   Future<void> fetchADHDPredictions() async {
     setState(() {
       isLoadingPrediction = true;
@@ -124,11 +144,44 @@ class _HomePageState extends State<HomePage> {
           });
 
           // Store the prediction in Firestore
+          final predictionScore =
+              ((adhdPrediction!['adhd_prediction_score'] ?? 0) * 100).toInt();
+
+          final classification = adhdPrediction!['adhd_classification'];
+
           await FirebaseFirestore.instance.collection('adhd_predictions').add({
-            "classification": adhdPrediction!['adhd_classification'],
-            "prediction_score": adhdPrediction!['adhd_prediction_score'],
+            "classification": classification,
+            "prediction_score": predictionScore,
             "timestamp": FieldValue.serverTimestamp(),
           });
+
+          // Add an alert if the prediction score is >= 50%
+          // Trigger alert if score exceeds the threshold
+          if (predictionScore >= _alertThreshold) {
+            String severityLevel;
+
+            if (predictionScore >= 90) {
+              severityLevel = "Serious ADHD Detected";
+            } else if (predictionScore >= 70) {
+              severityLevel = "High ADHD Detected";
+            } else if (predictionScore >= 50) {
+              severityLevel = "Normal ADHD Detected";
+            } else {
+              severityLevel = "No Significant ADHD Detected";
+            }
+
+            final alertMessage = "ADHD Level: $severityLevel";
+
+            // Store the alert in Firestore
+            await FirebaseFirestore.instance.collection('alerts').add({
+              "message": alertMessage,
+              "timestamp": FieldValue.serverTimestamp(),
+              "isRead": false, // Unread by default
+            });
+
+            // Trigger a pop-up notification
+            _showNotification('ADHD Alert', alertMessage);
+          }
         } else {
           setState(() {
             adhdPrediction = null;
@@ -144,6 +197,22 @@ class _HomePageState extends State<HomePage> {
         isLoadingPrediction = false;
       });
     }
+  }
+
+  void _showNotification(String title, String body) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   String getStepLevel(int hourlySteps) {
@@ -469,23 +538,28 @@ class PredictionsGraph extends StatelessWidget {
 
           for (int i = 0; i < predictionsData.length; i++) {
             final prediction = predictionsData[i];
-            final score = (prediction['prediction_score'] * 100).toDouble();
-            final timestamp = prediction['timestamp'].toDate();
+            final score = (prediction['prediction_score'] ?? 0).toDouble();
+            final timestamp = prediction['timestamp'];
 
-            labels.add(
-                "${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}"); // Add exact time
-            barGroups.add(
-              BarChartGroupData(
-                x: i,
-                barRods: [
-                  BarChartRodData(
-                    toY: score,
-                    width: 15,
-                    color: Colors.green,
-                  ),
-                ],
-              ),
-            );
+            if (timestamp != null && timestamp is Timestamp) {
+              final time = timestamp.toDate();
+              labels.add(
+                  "${time.hour}:${time.minute.toString().padLeft(2, '0')}"); // Add exact time
+              barGroups.add(
+                BarChartGroupData(
+                  x: i,
+                  barRods: [
+                    BarChartRodData(
+                      toY: score,
+                      width: 15,
+                      color: Colors.green,
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              print("Invalid or missing timestamp for prediction at index $i");
+            }
           }
 
           return SingleChildScrollView(
@@ -495,6 +569,7 @@ class PredictionsGraph extends StatelessWidget {
               child: BarChart(
                 BarChartData(
                   barGroups: barGroups,
+                  maxY: 100, // Fixed Y-axis to scale up to 100
                   titlesData: FlTitlesData(
                     leftTitles: AxisTitles(
                       axisNameWidget: const Text(
@@ -533,8 +608,6 @@ class PredictionsGraph extends StatelessWidget {
                       ),
                     ),
                   ),
-                  maxY:
-                      100, // Adjust based on the expected range of prediction scores
                   gridData: FlGridData(show: true),
                   borderData: FlBorderData(
                     show: true,
