@@ -89,23 +89,49 @@ class RegisteredUsersTab extends StatelessWidget {
   }
 }
 
-class UserDetailsPage extends StatelessWidget {
+class UserDetailsPage extends StatefulWidget {
   final String userId;
 
   UserDetailsPage({required this.userId});
 
-  void _updateUser(
-    BuildContext context,
-    String currentName,
-    String currentEmail,
-    String currentPhone,
-    String currentRole,
-  ) {
-    final nameController = TextEditingController(text: currentName);
-    final emailController = TextEditingController(text: currentEmail);
-    final phoneController = TextEditingController(text: currentPhone);
-    final roleController = TextEditingController(text: currentRole);
+  @override
+  _UserDetailsPageState createState() => _UserDetailsPageState();
+}
 
+class _UserDetailsPageState extends State<UserDetailsPage> {
+  late Future<DocumentSnapshot> _userDetailsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userDetailsFuture = _fetchUserDetails();
+  }
+
+  Future<DocumentSnapshot> _fetchUserDetails() async {
+    return await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .get();
+  }
+
+  void _updateUser(Map<String, dynamic> currentData) {
+    // Initialize controllers with current values
+    final nameController =
+        TextEditingController(text: currentData['name'] ?? '');
+    final emailController =
+        TextEditingController(text: currentData['email'] ?? '');
+    final phoneController =
+        TextEditingController(text: currentData['phone'] ?? '');
+    final roleController =
+        TextEditingController(text: currentData['role'] ?? '');
+    final doctorNameController =
+        TextEditingController(text: currentData['doctorName'] ?? '');
+    final doctorEmailController =
+        TextEditingController(text: currentData['doctorEmail'] ?? '');
+    final doctorPhoneController =
+        TextEditingController(text: currentData['doctorPhone'] ?? '');
+
+    // Show dialog for editing user details
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -129,6 +155,19 @@ class UserDetailsPage extends StatelessWidget {
                 controller: roleController,
                 decoration: const InputDecoration(labelText: "Role"),
               ),
+              const Divider(),
+              TextField(
+                controller: doctorNameController,
+                decoration: const InputDecoration(labelText: "Doctor Name"),
+              ),
+              TextField(
+                controller: doctorEmailController,
+                decoration: const InputDecoration(labelText: "Doctor Email"),
+              ),
+              TextField(
+                controller: doctorPhoneController,
+                decoration: const InputDecoration(labelText: "Doctor Phone"),
+              ),
             ],
           ),
         ),
@@ -139,24 +178,48 @@ class UserDetailsPage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              final name = nameController.text.trim();
-              final email = emailController.text.trim();
-              final phone = phoneController.text.trim();
-              final role = roleController.text.trim();
-              if (name.isNotEmpty &&
-                  email.isNotEmpty &&
-                  phone.isNotEmpty &&
-                  role.isNotEmpty) {
+              // Fetch updated values
+              final updatedData = {
+                'name': nameController.text.trim(),
+                'email': emailController.text.trim(),
+                'phone': phoneController.text.trim(),
+                'role': roleController.text.trim(),
+                'doctorName': doctorNameController.text.trim(),
+                'doctorEmail': doctorEmailController.text.trim(),
+                'doctorPhone': doctorPhoneController.text.trim(),
+              };
+
+              // Validate non-empty fields
+              if (updatedData.values.any((value) => value.isEmpty)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Please fill in all fields.")),
+                );
+                return;
+              }
+
+              try {
+                // Perform Firestore update
                 await FirebaseFirestore.instance
                     .collection('users')
-                    .doc(userId)
-                    .update({
-                  'name': name,
-                  'email': email,
-                  'phone': phone,
-                  'role': role,
+                    .doc(widget.userId)
+                    .update(updatedData);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("User updated successfully.")),
+                );
+
+                // Re-fetch updated data and refresh the UI
+                setState(() {
+                  _userDetailsFuture = _fetchUserDetails();
                 });
-                Navigator.pop(context);
+
+                Navigator.pop(context); // Close dialog
+              } catch (e) {
+                // Log and display error
+                print("Error updating user: $e");
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Failed to update user.")),
+                );
               }
             },
             child: const Text("Update"),
@@ -167,8 +230,21 @@ class UserDetailsPage extends StatelessWidget {
   }
 
   void _deleteUser(BuildContext context) async {
-    await FirebaseFirestore.instance.collection('users').doc(userId).delete();
-    Navigator.pop(context);
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User deleted successfully.")),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      print("Error deleting user: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to delete user.")),
+      );
+    }
   }
 
   @override
@@ -179,8 +255,7 @@ class UserDetailsPage extends StatelessWidget {
         backgroundColor: Colors.purple[200],
       ),
       body: FutureBuilder<DocumentSnapshot>(
-        future:
-            FirebaseFirestore.instance.collection('users').doc(userId).get(),
+        future: _userDetailsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -216,13 +291,7 @@ class UserDetailsPage extends StatelessWidget {
                 Row(
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () => _updateUser(
-                        context,
-                        data?['name'] ?? 'N/A',
-                        data?['email'] ?? 'N/A',
-                        data?['phone'] ?? 'N/A',
-                        data?['role'] ?? 'N/A',
-                      ),
+                      onPressed: () => _updateUser(data ?? {}),
                       icon: const Icon(Icons.edit),
                       label: const Text("Edit"),
                       style: ElevatedButton.styleFrom(
