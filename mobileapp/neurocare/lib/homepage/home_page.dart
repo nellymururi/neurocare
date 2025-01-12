@@ -390,7 +390,7 @@ class _HomePageState extends State<HomePage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PredictionsRecord(),
+                                builder: (context) => const PredictionsRecord(),
                               ),
                             );
                           },
@@ -465,7 +465,7 @@ class _HomePageState extends State<HomePage> {
                 },
                 child: buildCard(
                   title: "Predictions Graph",
-                  content: Container(
+                  content: SizedBox(
                     height: 300, // Adjusted graph height
                     child:
                         PredictionsGraph(), // Fetch and display predictions data

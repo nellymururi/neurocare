@@ -16,15 +16,20 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _patientNameController = TextEditingController();
+  final TextEditingController _doctorNameController = TextEditingController();
+  final TextEditingController _doctorEmailController = TextEditingController();
+  final TextEditingController _doctorPhoneController = TextEditingController();
 
   late String userId;
+  String? photoURL;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     userId = _auth.currentUser?.uid ?? '';
+    photoURL = _auth.currentUser?.photoURL; // Get the profile photo URL
     _fetchUserProfile();
   }
 
@@ -36,10 +41,14 @@ class _ProfilePageState extends State<ProfilePage> {
       if (userDoc.exists) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         _nameController.text = data['name'] ?? '';
-        _emailController.text = data['email'] ?? '';
+        _emailController.text = _auth.currentUser?.email ?? '';
         _phoneController.text = data['phone'] ?? '';
+        _patientNameController.text = data['patientName'] ?? '';
+        _doctorNameController.text = data['doctorName'] ?? '';
+        _doctorEmailController.text = data['doctorEmail'] ?? '';
+        _doctorPhoneController.text = data['doctorPhone'] ?? '';
       } else {
-        // Handle case where user profile doesn't exist
+        _emailController.text = _auth.currentUser?.email ?? '';
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -54,11 +63,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _updateProfile() async {
     try {
-      await _firestore.collection('users').doc(userId).update({
+      await _firestore.collection('users').doc(userId).set({
         'name': _nameController.text,
         'email': _emailController.text,
         'phone': _phoneController.text,
-      });
+        'patientName': _patientNameController.text,
+        'doctorName': _doctorNameController.text,
+        'doctorEmail': _doctorEmailController.text,
+        'doctorPhone': _doctorPhoneController.text,
+      }, SetOptions(merge: true));
+
+      if (_emailController.text != _auth.currentUser?.email) {
+        await _auth.currentUser?.updateEmail(_emailController.text);
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully!')),
       );
@@ -89,66 +107,86 @@ class _ProfilePageState extends State<ProfilePage> {
             appBar: AppBar(
               title: const Text('Profile'),
               backgroundColor: const Color.fromARGB(255, 249, 249, 249),
+              actions: [
+                if (photoURL != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: CircleAvatar(
+                      backgroundImage: NetworkImage(photoURL!),
+                      radius: 18,
+                    ),
+                  )
+                else
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: Icon(Icons.account_circle),
+                  ),
+              ],
             ),
-            body: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    //const Text(
-                    // "Edit Profile",
-                    // style: TextStyle(
-                    // fontSize: 24,
-                    // fontWeight: FontWeight.bold,
-                    //),
-                    //),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: "Name",
-                        border: OutlineInputBorder(),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  buildLabelField("Name", _nameController),
+                  buildLabelField("Email", _emailController),
+                  buildLabelField("Phone", _phoneController),
+                  buildLabelField("Patient's Name", _patientNameController),
+                  buildLabelField("Doctor's Name", _doctorNameController),
+                  buildLabelField("Doctor's Email", _doctorEmailController),
+                  buildLabelField("Doctor's Phone", _doctorPhoneController),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _updateProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color.fromARGB(255, 223, 218, 232),
+                          ),
+                          child: const Text("Update Profile"),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: "Email",
-                        border: OutlineInputBorder(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _deleteAccount,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color.fromARGB(255, 223, 218, 232),
+                          ),
+                          child: const Text("Delete Account"),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _phoneController,
-                      decoration: const InputDecoration(
-                        labelText: "Phone",
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _updateProfile,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color.fromARGB(255, 247, 246, 249),
-                      ),
-                      child: const Text("Update Profile"),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _deleteAccount,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color.fromARGB(255, 247, 245, 245),
-                      ),
-                      child: const Text("Delete Account"),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
           );
+  }
+
+  Widget buildLabelField(String label, TextEditingController controller,
+      {bool isNumber = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: controller,
+            keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

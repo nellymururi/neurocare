@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AlertPage extends StatefulWidget {
   const AlertPage({super.key});
@@ -12,6 +13,7 @@ class AlertPage extends StatefulWidget {
 class _AlertPageState extends State<AlertPage> {
   int _alertThreshold = 50; // Default threshold
   late FirebaseMessaging _messaging;
+  late String userEmail;
 
   @override
   void initState() {
@@ -109,9 +111,38 @@ class _AlertPageState extends State<AlertPage> {
     );
   }
 
+  // Add an alert to Firestore and send an email
+  Future<void> _addAlert(String message) async {
+    try {
+      // Add alert to Firestore
+      await FirebaseFirestore.instance.collection('alerts').add({
+        "message": message,
+        "timestamp": FieldValue.serverTimestamp(),
+        "isRead": false, // Unread by default
+      });
+
+      // Fetch the user's email
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final email = user.email;
+
+        // Send an email alert via Firestore Cloud Functions
+        await FirebaseFirestore.instance.collection('emailAlerts').add({
+          "to": email,
+          "message": message,
+          "timestamp": FieldValue.serverTimestamp(),
+        });
+
+        print("Email alert queued for $email");
+      }
+    } catch (e) {
+      print("Error adding alert or sending email: $e");
+    }
+  }
+
   // Open a dialog to customize the threshold
   void _showThresholdDialog() {
-    final TextEditingController _controller =
+    final TextEditingController controller =
         TextEditingController(text: _alertThreshold.toString());
 
     showDialog(
@@ -120,7 +151,7 @@ class _AlertPageState extends State<AlertPage> {
         return AlertDialog(
           title: const Text("Set Alert Threshold"),
           content: TextField(
-            controller: _controller,
+            controller: controller,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
               labelText: "Threshold (%)",
@@ -136,7 +167,7 @@ class _AlertPageState extends State<AlertPage> {
             ),
             TextButton(
               onPressed: () {
-                final newThreshold = int.tryParse(_controller.text);
+                final newThreshold = int.tryParse(controller.text);
                 if (newThreshold != null && newThreshold > 0) {
                   _updateAlertThreshold(newThreshold);
                   Navigator.of(context).pop(); // Close the dialog

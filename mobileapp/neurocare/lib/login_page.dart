@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'forgot_password_screen.dart';
 import 'auth_service.dart';
 import 'fingerprint_auth_service.dart';
+import 'admin_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -44,17 +46,49 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
+      // Authenticate user using email and password
       await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      _showMessage("Login successful!", Colors.green);
-      // Navigate to your home page or desired route
-      // ignore: use_build_context_synchronously
-      Navigator.pushReplacementNamed(context, '/home');
+
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Fetch document by email instead of UID
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: user.email)
+            .get();
+
+        if (querySnapshot.docs.isEmpty) {
+          print("No Firestore document found for email: ${user.email}");
+          _showMessage(
+              "User data not found in Firestore.", Colors.red.shade400);
+          return;
+        }
+
+        final userDoc = querySnapshot.docs.first;
+        final role = userDoc.data()['role'];
+        print("Role retrieved from Firestore: $role");
+        // Navigate based on role
+
+        if (role == 'admin') {
+          _showMessage("Admin login successful!", Colors.green);
+          Navigator.pushReplacementNamed(context, '/admin');
+        } else if (role == 'user') {
+          _showMessage("User login successful!", Colors.green);
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          _showMessage(
+            "Unknown role. Please contact support.",
+            Colors.red.shade400,
+          );
+          print("Unexpected role: $role for UID: ${user.uid}");
+        }
+      }
     } catch (e) {
       if (e is FirebaseAuthException) {
-        // Handle specific FirebaseAuth exceptions with tailored messages
+        // Handle specific FirebaseAuth exceptions
         switch (e.code) {
           case 'user-not-found':
             _showMessage(
@@ -85,8 +119,10 @@ class _LoginPageState extends State<LoginPage> {
             break;
         }
       } else {
+        // Handle unexpected errors
         _showMessage("An unexpected error occurred. Please try again.",
             Colors.red.shade400);
+        print("Unexpected error: $e");
       }
     }
   }

@@ -7,6 +7,8 @@ import 'home.dart';
 import 'forgot_password_screen.dart';
 import 'notes.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'admin_page.dart';
+import 'about_page.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Handle background messages
@@ -40,6 +42,8 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const Home(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/notes': (context) => const NotesPage(),
+        '/admin': (context) => AdminPage(),
+        '/about': (context) => const AboutPage(),
       },
     );
   }

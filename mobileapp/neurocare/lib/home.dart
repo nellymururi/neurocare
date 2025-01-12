@@ -117,20 +117,13 @@ class _HomeState extends State<Home> {
                 Navigator.pushNamed(context, '/notes');
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.settings,
-                  color: Color.fromARGB(255, 107, 70, 176)),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
+
             ListTile(
               leading: const Icon(Icons.info,
                   color: Color.fromARGB(255, 107, 70, 176)),
               title: const Text('About'),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pushNamed(context, '/about');
               },
             ),
             const Divider(), // Adds a separator before logout

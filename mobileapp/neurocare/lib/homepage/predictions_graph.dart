@@ -3,6 +3,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PredictionsGraph extends StatelessWidget {
+  const PredictionsGraph({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,7 +67,7 @@ class PredictionsGraph extends StatelessWidget {
           // Display the bar chart
           return Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Container(
+            child: SizedBox(
               height: 300, // Adjust graph height
               child: BarChart(
                 BarChartData(
@@ -109,7 +111,7 @@ class PredictionsGraph extends StatelessWidget {
                       ),
                     ),
                   ),
-                  gridData: FlGridData(show: false),
+                  gridData: const FlGridData(show: false),
                   borderData: FlBorderData(
                     show: true,
                     border: const Border(
