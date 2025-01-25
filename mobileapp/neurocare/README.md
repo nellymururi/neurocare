@@ -42,8 +42,7 @@ To contribute to the project:
 ## Issues
 If you encounter any issues with the project, please feel free to open an [issue](https://github.com/nellymururi/neurocare/issues).
 
-## License
-This project is licensed under the [MIT License](LICENSE).
+
 
 ## Features
 - **Real-time Monitoring**: Tracks ADHD-related metrics via wearable devices.
@@ -56,4 +55,7 @@ This project is licensed under the [MIT License](LICENSE).
 For inquiries or contributions, reach out via:
 - Email: nellymururi@gmail.com
 - GitHub: [nellymururi](https://github.com/nellymururi)
+
+  ## License
+This project is licensed under the [MIT License](LICENSE).
 
