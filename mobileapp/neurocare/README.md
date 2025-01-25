@@ -56,6 +56,6 @@ For inquiries or contributions, reach out via:
 - Email: nellymururi@gmail.com
 - GitHub: [nellymururi](https://github.com/nellymururi)
 
-  ## License
+## License
 This project is licensed under the [MIT License](LICENSE).
 
