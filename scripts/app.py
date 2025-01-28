@@ -6,7 +6,7 @@ import threading
 import time
 import firebase_admin
 from firebase_admin import credentials, firestore
-from flask import session  # Ensure session is imported
+from flask import session  
 
 # Initialize Firebase Admin SDK
 cred = credentials.Certificate("serviceAccountKey.json")
@@ -20,8 +20,8 @@ app = Flask(__name__)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'nelly.mururi@strathmore.edu'  # Replace with your email
-app.config['MAIL_PASSWORD'] = 'wpqgmshcocisunhg'  # Replace with your email password
+app.config['MAIL_USERNAME'] = 'your email'  # Replace with your email
+app.config['MAIL_PASSWORD'] = 'your password'  # Replace with your email password
 mail = Mail(app)
 
 # Global variables
