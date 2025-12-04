@@ -5,6 +5,7 @@ It helps caregivers monitor ADHD patients by providing real-time activity insigh
 The app integrates with Google Fit to fetch real-time movement, steps, and heart-rate data. This data is sent to an ML model to detect abnormal activity levels and notify caregivers instantly.
 
 📱 Features
+
 🧬 ML-Powered Predictions
 
 Sends activity data to an LSTM model to predict abnormal activity spikes.
