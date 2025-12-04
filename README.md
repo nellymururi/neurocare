@@ -27,23 +27,37 @@ A modern, simple interface with a splash screen, bottom navigation, and a caregi
 View, edit, update, or delete user details. Admins can also manage user credentials.
 
 🧠 Tech Stack
+
 Framework: Flutter (Dart)
+
 Backend ML Model: Python (FastAPI/Flask with LSTM model)
+
 Authentication: Firebase Authentication
+
 Database: Firestore
+
 APIs: Google Fit API (real-time activity data)
+
 Architecture: MVVM / Provider (or your preferred state management)
+
 Notifications: Firebase Cloud Messaging
 
 🚀 Getting Started
+
 Follow these steps to get a local copy up and running:
 
 Prerequisites
+
 Flutter SDK installed
+
 Android Studio or VS Code
+
 Git installed
+
 A configured Firebase project
+
 Google Fit API enabled
+
 Physical Android device or emulator
 
 
