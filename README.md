@@ -28,67 +28,65 @@ View, edit, update, or delete user details. Admins can also manage user credenti
 
 ## 🧠 Tech Stack
 
-Framework: Flutter (Dart)
-
-Backend ML Model: Python (FastAPI/Flask with LSTM model)
-
-Authentication: Firebase Authentication
-
-Database: Firestore
-
-APIs: Google Fit API (real-time activity data)
-
-Architecture: MVVM / Provider (or your preferred state management)
-
-Notifications: Firebase Cloud Messaging
+- Framework: Flutter (Dart)
+- Backend ML Model: Python (FastAPI/Flask with LSTM model)
+- Authentication: Firebase Authentication
+- Database: Firestore
+- APIs: Google Fit API (real-time activity data)
+- Architecture: MVVM / Provider (or your preferred state management)
+- Notifications: Firebase Cloud Messaging
 
 ## 🚀 Getting Started
 
 Follow these steps to get a local copy up and running:
 
 Prerequisites
-
-Flutter SDK installed
-
-Android Studio or VS Code
-
-Git installed
-
-A configured Firebase project
-
-Google Fit API enabled
-
-Physical Android device or emulator
+- Flutter SDK installed
+- Android Studio or VS Code
+- Git installed
+- A configured Firebase project
+- Google Fit API enabled
+- Physical Android device or emulator
 
 
 ## Installation
 1. Clone the repository
+```sh
 git clone https://github.com/yourusername/neurocare.git
-Navigate into the project folder:
+```
+
+2. Navigate into the project folder:
+```sh
 cd neurocare
+```
 
-2. Install Dependencies
+3. Install Dependencies
 Run:
+```sh
 flutter pub get
+```
 
-3. Add Firebase Configuration
+4. Add Firebase Configuration
 Place the config files in the correct directories:
+```sh
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+```
 
-4. Set Up Google Fit Permissions
+5. Set Up Google Fit Permissions
 Make sure the Google Fit scopes are added in your Flutter project, usually in:
 android/app/src/main/AndroidManifest.xml
 
-5. Run the App
+6. Run the App
+ ```sh
 flutter run
+```
 
-
-6. Connect a real device or emulator, then click Run ▶️ in your IDE.
+7. Connect a real device or emulator, then click Run ▶️ in your IDE.
 
    
 ## 🧩 Folder Structure
-
+ ```sh
 NeuroCare/
 │
 ├── lib/
@@ -102,19 +100,16 @@ NeuroCare/
 ├── android/                   # Android-specific configuration
 ├── ios/                       # iOS configuration
 └── pubspec.yaml               # Dependencies and assets
+```
 
 ## 💡 Future Enhancements
 
-Add support for wearable devices (Fitbit, Samsung Health).
-
-Implement push notifications using Firebase Cloud Messaging.
-
-Add caregiver chat or messaging.
-
-Offline mode for activity caching.
-
-More advanced ML predictions (stress, sleep patterns).
+- Add support for wearable devices (Fitbit, Samsung Health).
+- Implement push notifications using Firebase Cloud Messaging.
+- Add caregiver chat or messaging.
+- Offline mode for activity caching.
+- More advanced ML predictions (stress, sleep patterns).
 
 ## 📜 License
 
-License This project is licensed under the MIT License.
+This project is licensed under the [MIT License](LICENSE).
